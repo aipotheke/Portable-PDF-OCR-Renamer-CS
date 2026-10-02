@@ -50,7 +50,14 @@ public sealed class WebUI : IDisposable
         {
             try
             {
-                while (_listener.IsListening) _ = Task.Run(() => Handle(_listener.GetContext()));
+                while (_listener.IsListening)
+                {
+                    HttpListenerContext ctx;
+                    try { ctx = _listener.GetContext(); }
+                    catch (HttpListenerException) { break; }
+                    catch (ObjectDisposedException) { break; }
+                    ThreadPool.QueueUserWorkItem(_ => _ = Handle(ctx));
+                }
             }
             catch (HttpListenerException) { }
         })

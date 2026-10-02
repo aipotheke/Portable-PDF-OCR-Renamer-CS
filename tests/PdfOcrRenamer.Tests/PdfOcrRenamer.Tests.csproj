@@ -24,4 +24,7 @@
     <ProjectReference Include="..\..\src\PdfOcrRenamer\PdfOcrRenamer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

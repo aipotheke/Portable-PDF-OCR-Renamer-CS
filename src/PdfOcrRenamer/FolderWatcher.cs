@@ -131,9 +131,9 @@ public sealed class FolderWatcher : IDisposable
     private async void WorkerLoop()
     {
         var stop = _cts.Token;
-        foreach (var item in _queue.GetConsumingEnumerable(stop))
+        foreach (var item in _queue.GetConsumingEnumerable())
         {
-            if (item is null) break;
+            if (item is null || stop.IsCancellationRequested) break;
             var path = item;
             try
             {

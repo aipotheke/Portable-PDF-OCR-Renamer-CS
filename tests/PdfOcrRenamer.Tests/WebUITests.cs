@@ -19,16 +19,6 @@ public class WebUITests : IDisposable
 
     public void Dispose()
     {
-        foreach (var p in _ports)
-        {
-            try
-            {
-                using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(2);
-                client.GetAsync($"http://127.0.0.1:{p}/").Wait();
-            }
-            catch { }
-        }
     }
 
     private static async Task<string> GetJson(HttpListener listener, int port, string path)
@@ -163,7 +153,8 @@ public class WebUITests : IDisposable
             var resp = await client.PostAsync($"http://127.0.0.1:{port}/api/scan", null!);
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
             var body = await resp.Content.ReadAsStringAsync();
-            Assert.Contains("\"queued\":1", body);
+            using var doc = System.Text.Json.JsonDocument.Parse(body);
+            Assert.Equal(1, doc.RootElement.GetProperty("queued").GetInt32());
         }
         finally
         {
