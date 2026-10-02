@@ -1,0 +1,7 @@
+bin/
+obj/
+*.user
+config.json
+processed.json
+app.log
+app.lock
