@@ -52,8 +52,20 @@ embedding). The C# equivalents:
 ```
 dotnet build
 dotnet test
-dotnet publish src/PdfOcrRenamer -c Release
+dotnet publish src/PdfOcrRenamer -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
 ```
+
+### CI / GitHub Actions
+
+[`.github/workflows/build.yml`](.github/workflows/build.yml) runs on every push to
+`main` and every pull request:
+
+1. **Build & test** on Linux (`dotnet build` + `dotnet test`, 25 xUnit tests).
+2. **Publish** a self-contained single-file `PdfOcrRenamer.exe` (win-x64) on a
+   Windows runner and upload it as a workflow **artifact** (`PdfOcrRenamer-win-x64`).
+
+Push a version tag (`v1.0.0`) to also create a **GitHub Release** with the zipped
+exe attached and auto-generated release notes.
 
 ## Test suite
 
