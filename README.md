@@ -1,13 +1,13 @@
 # Portable PDF OCR Renamer — C#
 
-A single-executable Windows tool that watches a folder, OCRs new PDFs with the
+A Windows tool that watches a folder, OCRs new PDFs with the
 IONOS AI Model Hub (`lightonai/LightOnOCR-2-1B`), renames files to
 `date_filetype[_company]_oldname.pdf` (the LLM classifier also extracts the
 sender company name from the letterhead), embeds the Markdown output as a PDF
 attachment, and shows progress in a native **WinForms UI with a system tray
 icon**. **No Tesseract / OCRmyPDF.**
 
-This is a complete C# / .NET 8 port of the Python original
+This is a complete C# / .NET Framework 4.8 port of the Python original
 ([aipotheke/Portable-PDF-OCR-Renamer](https://github.com/aipotheke/Portable-PDF-OCR-Renamer)).
 
 ## Feature parity with the Python original
@@ -50,7 +50,7 @@ embedding). The C# equivalents:
 ```
 dotnet build
 dotnet test
-dotnet publish src/PdfOcrRenamer -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
+dotnet publish src/PdfOcrRenamer -c Release -o publish
 ```
 
 ### CI / GitHub Actions
@@ -59,12 +59,25 @@ dotnet publish src/PdfOcrRenamer -c Release -r win-x64 --self-contained true /p:
 `main` and every pull request:
 
 1. **Build & test** on Windows (`dotnet build` + `dotnet test` on `windows-latest`,
-   since the app targets `net8.0-windows` / WinForms).
-2. **Publish** a self-contained single-file `PdfOcrRenamer.exe` (win-x64) on a
-   Windows runner and upload it as a workflow **artifact** (`PdfOcrRenamer-win-x64`).
+   since the app targets WinForms).
+2. **Publish** a framework-dependent build on a Windows runner and upload it as a
+   workflow **artifact** (`PdfOcrRenamer-net48`).
 
-Push a version tag (`v1.0.0`) to also create a **GitHub Release** with the zipped
-exe attached and auto-generated release notes.
+Push a version tag (`v1.1.0`) to also create a **GitHub Release** with the zipped
+build attached and auto-generated release notes.
+
+## Requirements
+
+The app targets **.NET Framework 4.8**, which is preinstalled on Windows 10
+(1903+) and Windows 11 — no runtime download or installation needed in the
+normal case. Only satellite resources for **German and English** are shipped.
+
+If .NET Framework 4.8 is genuinely missing (e.g. an old Windows Server or a
+pristine Windows 10 pre-1903), get the offline installer from
+<https://dotnet.microsoft.com/download/dotnet-framework/net48>.
+
+The published download is now a few MB instead of the ~70 MB .NET 8
+self-contained zip, because the framework runtime ships with Windows.
 
 ## Test suite
 
@@ -80,7 +93,15 @@ recording, pause/resume, and manual scans.
 
 - The browser UI is replaced by a native WinForms window plus a system tray
   icon (restoring full tray parity with the Python original).
-- Tests run only on Windows (`net8.0-windows` target requires
-  Microsoft.WindowsDesktop.App).
+The app targets **.NET Framework 4.8** with WinForms — the lightest UI option
+available on Windows (WinForms has no additional runtime cost; WPF/WinUI/Avalonia
+are all heavier). The download is a few MB because the runtime is the one that
+ships with Windows itself.
+
+- Tests run only on Windows (`net48` + WinForms target).
+- The tray icon carries the full status: tooltip shows pause state, watch
+  folder, queued/active/done counts and an API-key warning; the icon changes
+  color when paused or busy; closing the window hides it to the tray
+  (Quit via the tray menu ends the app).
 - `st_ctime` on POSIX maps to creation time where the filesystem provides it,
   falling back to last-write time — same behavior as the Python code.

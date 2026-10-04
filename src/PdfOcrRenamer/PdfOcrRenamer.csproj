@@ -2,17 +2,22 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
     <AssemblyName>PdfOcrRenamer</AssemblyName>
     <RootNamespace>PdfOcrRenamer</RootNamespace>
-      <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <SatelliteResourceLanguages>en;de</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
 </Project>

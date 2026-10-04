@@ -1,15 +1,12 @@
 name: Build
-
 on:
   push:
     branches: [main]
     tags: ['v*']
   pull_request:
     branches: [main]
-
 permissions:
   contents: write
-
 jobs:
   test:
     name: Build & Test (windows)
@@ -21,9 +18,8 @@ jobs:
           dotnet-version: 8.0.x
       - run: dotnet build -c Release
       - run: dotnet test -c Release --no-build
-
   publish-windows:
-    name: Publish win-x64 exe
+    name: Publish (net48, framework-dependent)
     runs-on: windows-latest
     needs: [test]
     steps:
@@ -31,20 +27,22 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Publish self-contained (runtime side by side with the exe)
-        run: dotnet publish src/PdfOcrRenamer -c Release -r win-x64 --self-contained true /p:DebugType=None /p:DebugSymbols=false -o publish
+      - name: Publish framework-dependent (needs only .NET Framework 4.8, preinstalled on Windows 10/11)
+        run: dotnet publish src/PdfOcrRenamer -c Release -o publish /p:DebugType=None /p:GenerateDocumentationFile=false
+      - name: Clean pdbs
+        run: Get-ChildItem publish -Filter *.pdb | Remove-Item
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PdfOcrRenamer-win-x64
+          name: PdfOcrRenamer-net48
           path: publish/
           if-no-files-found: error
       - name: Zip for release
         if: startsWith(github.ref, 'refs/tags/v')
-        run: Compress-Archive -Path publish/* -DestinationPath PdfOcrRenamer-win-x64.zip
+        run: Compress-Archive -Path publish/* -DestinationPath PdfOcrRenamer-net48.zip
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: PdfOcrRenamer-win-x64.zip
+          files: PdfOcrRenamer-net48.zip
           generate_release_notes: true
