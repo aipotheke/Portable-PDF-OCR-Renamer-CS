@@ -313,9 +313,11 @@ namespace PdfOcrRenamer
             try
             {
                 var fi = new FileInfo(path);
+                var size = fi.Length;
+                var mtime = new DateTimeOffset(fi.LastWriteTimeUtc).ToUnixTimeSeconds();
                 result.Exists = true;
-                result.Size = fi.Length;
-                result.Mtime = new DateTimeOffset(fi.LastWriteTimeUtc).ToUnixTimeSeconds();
+                result.Size = size;
+                result.Mtime = mtime;
             }
             catch { }
             return result;
