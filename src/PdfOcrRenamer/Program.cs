@@ -3,7 +3,6 @@ namespace PdfOcrRenamer;
 public static class Program
 {
     public const string LockFileName = "app.lock";
-    public const string UiUrl = "http://127.0.0.1:8765";
 
     private static ILogger _log = new ConsoleLogger();
 
@@ -15,10 +14,9 @@ public static class Program
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         try
         {
-            using (File.Open(path, FileMode.CreateNew, FileAccess.Write))
-            {
-                File.WriteAllText(path, Environment.ProcessId.ToString());
-            }
+            using (var fs = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            using (var w = new StreamWriter(fs))
+                w.Write(Environment.ProcessId.ToString());
             return true;
         }
         catch (IOException)
@@ -33,11 +31,11 @@ public static class Program
         catch { }
     }
 
-    private static void SetupLogging(bool verbose)
+    private static void SetupLogging()
     {
         var logPath = Path.Combine(AppConfig.ConfigDir(), "app.log");
         Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
-        _log = new FileLogger(logPath, verbose);
+        _log = new FileLogger(logPath);
     }
 
     public static async Task<string?> ProcessOneAsync(string pdfPath, Dictionary<string, object?> cfg, ILogger log)
@@ -69,20 +67,17 @@ public static class Program
         return output;
     }
 
+    [STAThread]
     public static async Task<int> Main(string[] args)
     {
         string? once = null;
-        var watch = false;
-        var serve = false;
-        var verbose = false;
+        var cli = false;
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
             {
-                case "--once" when i + 1 < args.Length: once = args[++i]; break;
-                case "--watch": watch = true; break;
-                case "--serve": serve = true; break;
-                case "-v" or "--verbose": verbose = true; break;
+                case "--once" when i + 1 < args.Length: once = args[++i]; cli = true; break;
+                case "--cli": cli = true; break;
             }
         }
 
@@ -94,83 +89,36 @@ public static class Program
             catch (Exception exc) { Console.Error.WriteLine($"Error: {exc.Message}"); return 1; }
         }
 
-        if (watch)
-        {
-            var cfg = AppConfig.LoadConfig();
-            using var cts = new CancellationTokenSource();
-            using var watcher = new FolderWatcher(cfg, log: _log);
-            watcher.Start();
-            Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
-            try { await Task.Delay(Timeout.Infinite, cts.Token); }
-            catch (OperationCanceledException) { }
-            watcher.Stop();
-            return 0;
-        }
-
-        if (serve)
-        {
-            var cfg = AppConfig.LoadConfig();
-            using var cts = new CancellationTokenSource();
-            using var ui = new WebUI(cfg, log: _log);
-            ui.Start();
-            Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
-            try { await Task.Delay(Timeout.Infinite, cts.Token); }
-            catch (OperationCanceledException) { }
-            ui.Stop();
-            return 0;
-        }
-
         if (!AcquireLock())
         {
-            Console.WriteLine("Another instance is already running (app.lock exists) — opening its UI.");
-            try
-            {
-                using var proc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = UiUrl,
-                    UseShellExecute = true,
-                });
-            }
-            catch { }
+            MessageBox.Show("Another instance is already running.", "PDF OCR Renamer",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
             return 0;
         }
 
-        SetupLogging(verbose);
-        var quitEvent = new ManualResetEvent(false);
+        SetupLogging();
         var config = AppConfig.LoadConfig();
-        using var ui2 = new WebUI(config, log: _log);
-        ui2.Start();
-        Console.CancelKeyPress += (_, e) => { e.Cancel = true; quitEvent.Set(); };
-        Console.WriteLine($"Running — UI at {UiUrl} (Ctrl+C to quit).");
-        quitEvent.WaitOne();
-        ui2.Stop();
+        using var watcher = new FolderWatcher(config, log: _log);
+        watcher.Start();
+        _log.Info($"Watching folder: {watcher.Folder()}");
+
+        if (cli)
+        {
+            var quit = new ManualResetEvent(false);
+            Console.CancelKeyPress += (_, e) => { e.Cancel = true; quit.Set(); };
+            Console.WriteLine("Running (Ctrl+C to quit).");
+            quit.WaitOne();
+        }
+        else
+        {
+            ApplicationConfiguration.Initialize();
+            using var tray = new TrayIcon(() => watcher.Paused, () => { }, () => Application.Exit());
+            Application.Run(new MainForm(config, watcher, _log));
+        }
+
+        watcher.Stop();
         ReleaseLock();
         _log.Info("Bye");
         return 0;
     }
-}
-
-public sealed class FileLogger : ILogger
-{
-    private readonly object _lock = new();
-    private readonly string _path;
-
-    public FileLogger(string path, bool verbose)
-    {
-        _path = path;
-    }
-
-    private void Write(string level, string message)
-    {
-        lock (_lock)
-        {
-            using var writer = new StreamWriter(_path, append: true);
-            writer.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {level} main: {message}");
-        }
-    }
-
-    public void Info(string message) => Write("INFO", message);
-    public void Warn(string message) => Write("WARNING", message);
-    public void Error(string message) => Write("ERROR", message);
-    public void Error(string message, Exception exc) => Write("ERROR", $"{message}: {exc}");
 }

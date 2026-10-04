@@ -1,17 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AssemblyName>PdfOcrRenamer</AssemblyName>
+    <RootNamespace>PdfOcrRenamer</RootNamespace>
+      <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="WebUI/index.html" CopyToOutputDirectory="Always" />
-  </ItemGroup>
 </Project>
