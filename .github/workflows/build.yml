@@ -31,8 +31,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Publish self-contained single-file exe
-        run: dotnet publish src/PdfOcrRenamer -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true -o publish
+      - name: Publish self-contained (runtime side by side with the exe)
+        run: dotnet publish src/PdfOcrRenamer -c Release -r win-x64 --self-contained true /p:DebugType=None /p:DebugSymbols=false -o publish
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
